@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      .wave {
+        position: relative;
+        margin: 20px auto;
+        width: 95%;
+      }
+
+      .oper {
+        margin: 20px 0;
+        display: flex;
+      }
+
+      .oper button {
+        margin: 0 20px;
+      }
+
+      .oper div {
+        margin-left: 20px;
+      }
+    </style>
+    <style>
+      .box {
+        position: absolute;
+        display: inline-flex;
+        top: 0;
+        cursor: move;
+        height: 100%;
+        z-index: 1;
+        background-color: rgba(255, 211, 211, 0.5);
+      }
+
+      .box > .leftLine,
+      .box > .rightLine {
+        width: 5px;
+        height: 100%;
+        position: absolute;
+        background-color: transparent;
+      }
+
+      .box > .leftLine {
+        left: 0;
+        cursor: e-resize;
+      }
+
+      .box > .rightLine {
+        right: 0;
+        cursor: e-resize;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="./wavesurfer.js"></script>
+    <div class="oper">
+      <button id="play">播放 / 暂停</button>
+      <button id="TEST">测试</button>
+      <div>
+        <span>开始时间:</span>
+        <input id="sTime" type="text" value="" />
+      </div>
+      <div>
+        <span>结束时间:</span>
+        <input id="eTime" type="text" value="" />
+      </div>
+      <button id="saveButton">保存</button>
+    </div>
+    <div class="wave" id="waveform">
+      <div class="box time-interval-box" style="width: 50px; left: 50px">
+        <div class="leftLine"></div>
+        <div class="rightLine"></div>
+      </div>
+    </div>
+    <script>
+      // https://blog.csdn.net/qq_22182989/article/details/111983114
+      // https://wavesurfer-js.org/
+      // http://wavesurfer-js.org/docs/options.html
+      // https://wavesurfer-js.org/docs/methods.html
+      // https://wavesurfer-js.org/docs/methods.html
+
+      let duration;
+      const waveformDom = document.getElementById("waveform");
+      const totalLength = waveformDom.clientWidth;
+
+      const wavesurfer = WaveSurfer.create({
+        container: "#waveform",
+        waveColor: "red",
+        progressColor: "yellow",
+        backgroundColor: "#cccccc",
+        cursorColor: "#2196f3",
+        // cursorWidth: 0,
+      });
+
+      const url =
+        "https://ny.aigei.com:8443/0-r12/GeiFileLocalStore/b79/src/aud/mp3/b3/b3cdd2491a4d463da67c65e95c506eff.mp3?download/%E5%93%A6%EF%BC%8CHoly+Night_Duo_%28Oh+Holy+Nigh_%E7%88%B1%E7%BB%99%E7%BD%91_aigei_com.mp3&e=1666204980&token=P7S2Xpzfz11vAkASLTkfHN7Fw-oOZBecqeJaxypL:uZium2fsnjm4E-MGqd6GYXDuYRQ=";
+      // 接收传入的音频
+      wavesurfer.load("./wavesurfer.m4a");
+
+      wavesurfer.on("ready", function () {
+        duration = wavesurfer.getDuration();
+        console.log("duration:", duration);
+        initInput(document.querySelector(".box"));
+      });
+
+      // wavesurfer.on("play", function () {
+      //   console.log("play。。。。。。。。。");
+      // });
+      // wavesurfer.on("pause", function () {
+      //   console.log("pause。。。。。。。。。");
+      // });
+
+      // 播放 / 暂停
+      document.getElementById("play").addEventListener("click", () => {
+        // wavesurfer.pause()
+        // wavesurfer.play();
+        wavesurfer.playPause();
+      });
+
+      document.getElementById("saveButton").addEventListener("click", () => {
+        const sTime = document.getElementById("sTime").value;
+        const eTime = document.getElementById("eTime").value;
+        setSelectedArea(sTime, eTime, document.querySelector(".box"));
+      });
+
+      function initInput(box) {
+        const sTime = document.getElementById("sTime");
+        const eTime = document.getElementById("eTime");
+        const times = getTimeInterval(box);
+        sTime.value = times[0];
+        eTime.value = times[1];
+      }
+
+      function getTimeInterval(box) {
+        let { width, left, right } = box.style;
+        if (!width) return false;
+        let endTime;
+        let startTime;
+        width = +width.replace("px", "");
+        if (left) {
+          left = +left.replace("px", "");
+          startTime = (left / totalLength) * duration;
+          endTime = ((left + width) / totalLength) * duration;
+        } else if (right) {
+          right = +right.replace("px", "");
+          startTime = ((totalLength - right - width) / totalLength) * duration;
+          endTime = ((totalLength - right) / totalLength) * duration;
+        } else {
+          return false;
+        }
+        return [startTime, endTime];
+      }
+
+      function setSelectedArea(startTime, endTime, box) {
+        endTime = +endTime;
+        startTime = +startTime;
+        const left = (startTime / duration) * totalLength;
+        const width = ((endTime - startTime) / duration) * totalLength;
+        box.style.width = width + "px";
+        box.style.left = left + "px";
+        box.style.right = "";
+      }
+
+      document.getElementById("TEST").addEventListener("click", () => {
+        // 暂停时播放，播放时暂停: playPause():
+        // wavesurfer.zoom((index += 10));
+        // console.log(
+        //   "获取当前时间 getCurrentTime:",
+        //   wavesurfer.getCurrentTime()
+        // );
+        // console.log(
+        //   "设置当前时间 getCurrentTime:",
+        //   wavesurfer.setCurrentTime(1)
+        // );
+        // console.log("是否在播放:", wavesurfer.isPlaying());
+        // console.log("获取时长:", wavesurfer.getDuration());
+        const time = getTimeInterval(document.querySelector(".box"));
+        wavesurfer.play(time[0], time[1]);
+      });
+    </script>
+
+    <script>
+      let _saveX;
+
+      function updateLeftArea(ev) {
+        // ev.stopPropagation();
+        const updateBox = ev.target.parentElement || ev.target.parentNode;
+        const oldX = ev.clientX;
+        const w = updateBox.clientWidth;
+
+        const boxClientRect = updateBox.getBoundingClientRect();
+        const waveClientRect = waveformDom.getBoundingClientRect();
+        const thisRight = waveClientRect.right - boxClientRect.right;
+        const maxWidth = boxClientRect.right - waveClientRect.left - 2;
+
+        updateBox.style.left = "";
+        updateBox.style.right = thisRight + "px";
+
+        window.onmousemove = function (e) {
+          const offsetX = e.clientX - oldX;
+          const thisWidth = w - offsetX;
+          updateBox.style.width =
+            Math.min(maxWidth, Math.max(30, thisWidth)) + "px";
+        };
+      }
+
+      function updateRightArea(ev) {
+        // ev.stopPropagation();
+        const updateBox = ev.target.parentElement || ev.target.parentNode;
+        const oldX = ev.clientX; //顶点原本的x值
+        const w = updateBox.clientWidth; //box的宽度
+
+        const boxClientRect = updateBox.getBoundingClientRect();
+        const waveClientRect = waveformDom.getBoundingClientRect();
+        const thisLeft = boxClientRect.left - waveClientRect.left;
+        const maxWidth = waveClientRect.right - boxClientRect.left - 2;
+
+        updateBox.style.right = "";
+        updateBox.style.left = thisLeft + "px";
+
+        window.onmousemove = function (e) {
+          const offsetX = e.clientX - oldX; //鼠标移动 x 轴偏移量
+          const thisWidth = w + offsetX;
+          updateBox.style.width =
+            Math.min(maxWidth, Math.max(30, thisWidth)) + "px";
+        };
+      }
+
+      function moveAreaBox(ev) {
+        // ev.stopPropagation();
+        const updateBox = ev.target;
+        const oldX = ev.clientX;
+        const w = updateBox.clientWidth;
+        const l = updateBox.offsetLeft;
+        const maxLeft = waveformDom.clientWidth - w;
+        window.onmousemove = function (e) {
+          const offsetX = e.clientX - oldX;
+          updateBox.style.left =
+            Math.min(maxLeft, Math.max(0, l + offsetX)) + "px";
+        };
+      }
+
+      function addAreaBox(ev) {
+        _saveX = ev.clientX; // 鼠标离左边的距离
+        let createDiv = document.createElement("div");
+        const style = `width: 1px; left: ${_saveX - 20}px;`;
+        createDiv.innerHTML = `
+          <div id="_addArea" class="box time-interval-box" style="${style}">
+            <div class="leftLine"></div>
+            <div class="rightLine"></div>
+          </div>;`;
+        const addBox = createDiv.querySelector(".time-interval-box");
+        createDiv = undefined;
+        waveformDom.appendChild(addBox);
+      }
+
+      waveformDom.addEventListener("mousedown", (e) => {
+        const className = e.target.className;
+        if (className.includes("time-interval-box")) {
+          moveAreaBox(e);
+        } else if (className.includes("rightLine")) {
+          updateRightArea(e);
+        } else if (className.includes("leftLine")) {
+          updateLeftArea(e);
+        } else {
+          addAreaBox(e);
+        }
+      });
+
+      waveformDom.addEventListener("mousemove", (e) => {
+        if (!_saveX) return;
+        const offsetX = e.clientX - _saveX;
+        document.getElementById("_addArea").style.width = offsetX + "px";
+      });
+
+      // 鼠标抬起后清除鼠标移动事件
+      waveformDom.addEventListener("mouseup", (e) => {
+        window.onmousemove = false;
+        _saveX = undefined;
+        initInput(document.querySelector(".box"));
+        const addArea = document.getElementById("_addArea");
+        if (addArea) {
+          addArea.setAttribute("id", null);
+          if (+addArea.style.width.replace("px", "") < 30) {
+            addArea.remove();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
